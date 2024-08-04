@@ -5,19 +5,22 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import tech.carcher.felipe_rodriguez_015.R
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.*
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
@@ -33,11 +36,60 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.recyclerViewProducts)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        productAdapter = ProductAdapter(products)
+        productAdapter = ProductAdapter(products) { position ->
+            showContextMenu(position)
+        }
         recyclerView.adapter = productAdapter
 
         loadProducts()
     }
+
+    private fun showContextMenu(position: Int) {
+        val popup = PopupMenu(this, recyclerView.getChildAt(position))
+        popup.menuInflater.inflate(R.menu.context_menu, popup.menu)
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_delete_product -> {
+                    removeProduct(position)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun removeProduct(position: Int) {
+        if (position < products.size) {
+            val removedProduct = products.removeAt(position)
+            productAdapter.updateProducts(products)
+            saveProducts()
+            Log.d("MainActivity", "Producto eliminado: ${removedProduct.title}")
+            Toast.makeText(this, "Producto eliminado: ${removedProduct.title}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        return when (item.title) {
+            "Eliminar producto" -> {
+                removeProduct(item.itemId)
+                true
+            }
+            else -> super.onContextItemSelected(item)
+        }
+    }
+
+//    private fun removeProduct(position: Int) {
+//        if (position < products.size) {
+//            val removedProduct = products.removeAt(position)
+//            productAdapter.updateProducts(products)
+//            saveProducts()
+//            Log.d("MainActivity", "Producto eliminado: ${removedProduct.title}")
+//            Toast.makeText(this, "Producto eliminado: ${removedProduct.title}", Toast.LENGTH_SHORT).show()
+//        }
+//    }
+
+
 
     private fun loadProducts() {
         val sharedPref = getPreferences(Context.MODE_PRIVATE)
@@ -102,10 +154,6 @@ class MainActivity : AppCompatActivity() {
                 addRandomProduct()
                 true
             }
-            R.id.action_remove_product -> {
-                removeLastProduct()
-                true
-            }
             R.id.action_show_chart -> {
                 showTopRatedProductsChart()
                 true
@@ -114,30 +162,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     private fun addRandomProduct() {
-        val newProduct = Product(
-            id = products.size + 1,
-            title = "Nuevo Producto ${products.size + 1}",
-            price = (10..100).random().toDouble(),
-            description = "Descripción del nuevo producto",
-            category = "Categoría",
-            image = "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
-            rating = Rating(rate = (1..5).random().toDouble(), count = (10..100).random())
-        )
-        products.add(newProduct)
-        productAdapter.updateProducts(products)
-        saveProducts()
-        Log.d("MainActivity", "Producto agregado: ${newProduct.title}")
+        val randomId = (1..20).random() // Asumiendo que la API tiene 20 productos
+        val request = Request.Builder()
+            .url("https://fakestoreapi.com/products/$randomId")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("MainActivity", "Error fetching random product", e)
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Error al agregar producto", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.string()?.let { jsonString ->
+                    val newProduct: Product = gson.fromJson(jsonString, Product::class.java)
+
+                    runOnUiThread {
+                        products.add(newProduct)
+                        productAdapter.updateProducts(products)
+                        saveProducts()
+                        Log.d("MainActivity", "Producto agregado: ${newProduct.title}")
+                        Toast.makeText(this@MainActivity, "Producto agregado: ${newProduct.title}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
     }
 
-    private fun removeLastProduct() {
-        if (products.isNotEmpty()) {
-            val removedProduct = products.removeAt(products.size - 1)
-            productAdapter.updateProducts(products)
-            saveProducts()
-            Log.d("MainActivity", "Producto eliminado: ${removedProduct.title}")
-        }
-    }
+//    private fun addRandomProduct() {
+//        val newProduct = Product(
+//            id = products.size + 1,
+//            title = "Nuevo Producto ${products.size + 1}",
+//            price = (10..100).random().toDouble(),
+//            description = "Descripción del nuevo producto",
+//            category = "Categoría",
+//            image = "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
+//            rating = Rating(rate = (1..5).random().toDouble(), count = (10..100).random())
+//        )
+//        products.add(newProduct)
+//        productAdapter.updateProducts(products)
+//        saveProducts()
+//        Log.d("MainActivity", "Producto agregado: ${newProduct.title}")
+//    }
 
     private fun showTopRatedProductsChart() {
         val topProducts = products.sortedByDescending { it.rating.rate }.take(5)

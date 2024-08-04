@@ -8,10 +8,11 @@ import android.widget.RatingBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import tech.carcher.felipe_rodriguez_015.R
 
-class ProductAdapter(private var products: List<Product>) :
-    RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
+class ProductAdapter(
+    private var products: List<Product>,
+    private val onItemLongClick: (Int) -> Unit
+) : RecyclerView.Adapter<ProductAdapter.ProductViewHolder>() {
 
     class ProductViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imageView: ImageView = view.findViewById(R.id.imageViewProduct)
@@ -35,6 +36,11 @@ class ProductAdapter(private var products: List<Product>) :
         Glide.with(holder.itemView.context)
             .load(product.image)
             .into(holder.imageView)
+
+        holder.itemView.setOnLongClickListener {
+            onItemLongClick(position)
+            true
+        }
     }
 
     override fun getItemCount() = products.size
