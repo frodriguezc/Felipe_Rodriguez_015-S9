@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Felipe_Rodriguez_015</string>
+    <string name="producto_eliminado">Producto eliminado: %1$s</string>
+    <string name="eliminar_producto">Eliminar producto</string>
+    <string name="productos_cargados_correctamente">Productos cargados correctamente</string>
+    <string name="error_al_cargar_productos">Error al cargar productos</string>
+    <string name="error_al_agregar_producto">Error al agregar producto</string>
+    <string name="producto_agregado">Producto agregado: %1$s</string>
+    <string name="calificaci_n">Calificación</string>
+    <string name="agregar_producto">Agregar Producto</string>
+    <string name="mostrar_gr_fico">Mostrar Gráfico</string>
 </resources>

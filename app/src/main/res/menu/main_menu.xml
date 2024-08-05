@@ -2,8 +2,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_add_product"
-        android:title="Agregar Producto" />
+        android:title="@string/agregar_producto" />
     <item
         android:id="@+id/action_show_chart"
-        android:title="Mostrar Gráfico" />
+        android:title="@string/mostrar_gr_fico" />
 </menu>

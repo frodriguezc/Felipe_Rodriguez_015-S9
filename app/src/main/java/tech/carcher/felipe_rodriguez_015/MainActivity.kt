@@ -10,10 +10,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.HorizontalBarChart
+import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.Call
@@ -64,32 +67,20 @@ class MainActivity : AppCompatActivity() {
             val removedProduct = products.removeAt(position)
             productAdapter.updateProducts(products)
             saveProducts()
-            Log.d("MainActivity", "Producto eliminado: ${removedProduct.title}")
-            Toast.makeText(this, "Producto eliminado: ${removedProduct.title}", Toast.LENGTH_SHORT).show()
+            Log.d("MainActivity", getString(R.string.producto_eliminado, removedProduct.title))
+            Toast.makeText(this, getString(R.string.producto_eliminado, removedProduct.title), Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onContextItemSelected(item: MenuItem): Boolean {
         return when (item.title) {
-            "Eliminar producto" -> {
+            getString(R.string.eliminar_producto) -> {
                 removeProduct(item.itemId)
                 true
             }
             else -> super.onContextItemSelected(item)
         }
     }
-
-//    private fun removeProduct(position: Int) {
-//        if (position < products.size) {
-//            val removedProduct = products.removeAt(position)
-//            productAdapter.updateProducts(products)
-//            saveProducts()
-//            Log.d("MainActivity", "Producto eliminado: ${removedProduct.title}")
-//            Toast.makeText(this, "Producto eliminado: ${removedProduct.title}", Toast.LENGTH_SHORT).show()
-//        }
-//    }
-
-
 
     private fun loadProducts() {
         val sharedPref = getPreferences(Context.MODE_PRIVATE)
@@ -99,7 +90,8 @@ class MainActivity : AppCompatActivity() {
             val type = object : TypeToken<List<Product>>() {}.type
             products.addAll(gson.fromJson(savedProducts, type))
             productAdapter.updateProducts(products)
-            Toast.makeText(this, "Productos cargados correctamente", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this,
+                getString(R.string.productos_cargados_correctamente), Toast.LENGTH_SHORT).show()
         } else {
             fetchProductsFromApi()
         }
@@ -114,7 +106,8 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e("MainActivity", "Error fetching products", e)
                 runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Error al cargar productos", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity,
+                        getString(R.string.error_al_cargar_productos), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -128,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                         products.addAll(fetchedProducts)
                         productAdapter.updateProducts(products)
                         saveProducts()
-                        Toast.makeText(this@MainActivity, "Productos cargados correctamente", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, getString(R.string.productos_cargados_correctamente), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -164,7 +157,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun addRandomProduct() {
-        val randomId = (1..20).random() // Asumiendo que la API tiene 20 productos
+        val randomId = (1..20).random()
         val request = Request.Builder()
             .url("https://fakestoreapi.com/products/$randomId")
             .build()
@@ -173,7 +166,8 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e("MainActivity", "Error fetching random product", e)
                 runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Error al agregar producto", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity,
+                        getString(R.string.error_al_agregar_producto), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -185,44 +179,83 @@ class MainActivity : AppCompatActivity() {
                         products.add(newProduct)
                         productAdapter.updateProducts(products)
                         saveProducts()
-                        Log.d("MainActivity", "Producto agregado: ${newProduct.title}")
-                        Toast.makeText(this@MainActivity, "Producto agregado: ${newProduct.title}", Toast.LENGTH_SHORT).show()
+                        Log.d("MainActivity",
+                            getString(R.string.producto_agregado, newProduct.title))
+                        Toast.makeText(this@MainActivity, getString(R.string.producto_agregado, newProduct.title), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
         })
     }
 
-//    private fun addRandomProduct() {
-//        val newProduct = Product(
-//            id = products.size + 1,
-//            title = "Nuevo Producto ${products.size + 1}",
-//            price = (10..100).random().toDouble(),
-//            description = "Descripción del nuevo producto",
-//            category = "Categoría",
-//            image = "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
-//            rating = Rating(rate = (1..5).random().toDouble(), count = (10..100).random())
-//        )
-//        products.add(newProduct)
-//        productAdapter.updateProducts(products)
-//        saveProducts()
-//        Log.d("MainActivity", "Producto agregado: ${newProduct.title}")
-//    }
-
     private fun showTopRatedProductsChart() {
         val topProducts = products.sortedByDescending { it.rating.rate }.take(5)
         val entries = topProducts.mapIndexed { index, product ->
-            BarEntry(index.toFloat(), product.rating.rate.toFloat())
+            BarEntry((topProducts.size - 1 - index).toFloat(), product.rating.rate.toFloat())
         }
 
-        val dataSet = BarDataSet(entries, "Top 5 Productos")
-        val barData = BarData(dataSet)
+        val dataSet = BarDataSet(entries, getString(R.string.calificaci_n))
+        dataSet.setColors(*ColorTemplate.MATERIAL_COLORS)
 
-        val chart = BarChart(this)
+        val barData = BarData(dataSet)
+        barData.setValueTextSize(35f)
+        barData.setValueFormatter(object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                return String.format("%.1f", value)
+            }
+        })
+
+        val chart = HorizontalBarChart(this)
         chart.data = barData
         chart.setFitBars(true)
-        chart.invalidate()
+        chart.description.isEnabled = false
+        chart.legend.isEnabled = true
+
+        val leftAxis = chart.axisLeft
+        leftAxis.axisMinimum = 0f
+        leftAxis.axisMaximum = 5f
+        leftAxis.setDrawLabels(true)
+        leftAxis.setDrawAxisLine(true)
+        leftAxis.setDrawGridLines(true)
+
+        val rightAxis = chart.axisRight
+        rightAxis.setDrawAxisLine(true)
+        rightAxis.setDrawGridLines(true)
+        rightAxis.setDrawLabels(true)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawAxisLine(true)
+        xAxis.setDrawGridLines(true)
+        xAxis.granularity = 1f
+        xAxis.labelCount = topProducts.size
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val index = value.toInt()
+                if (index in topProducts.indices) {
+                    val product = topProducts[index]
+                    return truncateString(product.title, 30)
+                }
+                return ""
+            }
+        }
+
+        chart.animateY(1000)
+
+        chart.extraLeftOffset = 35f
+        chart.extraRightOffset = 20f
+        chart.extraTopOffset = 10f
+        chart.extraBottomOffset = 10f
+
+        chart.setTouchEnabled(false)
+        chart.isDragEnabled = false
+        chart.setScaleEnabled(false)
+        chart.setPinchZoom(false)
 
         setContentView(chart)
+    }
+
+    private fun truncateString(str: String, length: Int): String {
+        return if (str.length > length) str.substring(0, length) + "..." else str
     }
 }
